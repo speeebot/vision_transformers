@@ -5,26 +5,55 @@ from tensorflow.keras import layers
 import tensorflow_addons as tfa
 import argparse, os, sys
 
-def get_data(data_set):
-  if data_set == "cifar10":
-    (x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
-  elif data_set == "cifar100":
-    (x_train, y_train), (x_test, y_test) = keras.datasets.cifar100.load_data()
-  elif data_set == "fashion_mnist":
-    (x_train, y_train), (x_test, y_test) = keras.datasets.fashion_mnist.load_data()
-    x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
-    x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
+#-----------------------------networks----------------------------------
 
-  #normalize
-  x_train = x_train / 255
-  x_test = x_test / 255
+def create_tiny_cnn(num_classes, input_shape):
+  #define model
+  model = tf.keras.models.Sequential()
+  model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
+  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Flatten())
+  model.add(tf.keras.layers.Dense(512, activation='relu'))
+  model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
+  #compile model
+  opt = tf.keras.optimizers.Adam(learning_rate=0.001)
+  model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+  model.summary()
+  return model
 
-  #one-hot encode
-  y_train = tf.keras.utils.to_categorical(y_train)
-  y_test = tf.keras.utils.to_categorical(y_test)
+def create_small_cnn(num_classes, input_shape):
+  #define model
+  model = tf.keras.models.Sequential()
+  model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
+  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Conv2D(128, (3, 3), activation='relu'))
+  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Flatten())
+  model.add(tf.keras.layers.Dense(512, activation='relu'))
+  model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
+  #compile model
+  opt = tf.keras.optimizers.Adam(learning_rate=0.001)
+  model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+  model.summary()
+  return model
 
-  return (x_train, y_train), (x_test, y_test)
-
+def create_base_cnn(num_classes, input_shape):
+  #define model
+  model = tf.keras.models.Sequential()
+  model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
+  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Conv2D(128, (3, 3), activation='relu'))
+  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Conv2D(256, (3, 3), activation='relu'))
+  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Flatten())
+  model.add(tf.keras.layers.Dense(512, activation='relu'))
+  model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
+  #compile model
+  opt = tf.keras.optimizers.Adam(learning_rate=0.001)
+  model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+  model.summary()
+  return model
 
 #TODO: make_tranformer uses variables not present in scope of sampleViT.py example
 def make_transformer(transformer_layers, num_classes, input_shape, x_train):
@@ -97,44 +126,62 @@ def make_transformer(transformer_layers, num_classes, input_shape, x_train):
       keras.metrics.SparseTopKCategoricalAccuracy(5, name="top-5-accuracy"),
     ],
   )
-
+  model.summary()
   return model
 
-def run_tiny(train_or_test, num_classes, input_shape, x_train, y_train, x_test, y_test):
-  if train_or_test == "train":
-    cnn_model = define_tiny_cnn(num_classes, input_shape)
-    history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=32, validation_data=(x_test, y_test))
-    #transformer_layers = 4
-    #vit_classifier = make_transformer(transformer_layers, num_classes, input_shape, x_train)
-  elif train_or_test == "test":
-    return
+#-----------------------------training----------------------------------
+#each train function below trains CNN and vision transformer of defined size (tiny, small, base)
+def train_tiny(num_classes, input_shape, x_train, y_train, x_test, y_test):
+  #train tiny CNN
+  cnn_model = create_tiny_cnn(num_classes, input_shape)
+  history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
+
+  #train tiny vision transformer
+  #transformer_layers = 4
+  #vit_classifier = make_transformer(transformer_layers, num_classes, input_shape, x_train)
   return
 
-def run_small(train_or_test, num_classes, input_shape, x_train):
-  if train_or_test == "train":
-    transformer_layers = 6
-  elif train_or_test == "test":
-    return
+def train_small(num_classes, input_shape, x_train, y_train, x_test, y_test):
+  #train small CNN
+  cnn_model = create_small_cnn(num_classes, input_shape)
+  history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
+
+  #train small vision transformer
+  #transformer_layers = 6
+  #vit_classifier = make_transformer(transformer_layers, num_classes, input_shape, x_train)
   return
 
-def run_base(train_or_test, num_classes, input_shape, x_train):
-  if train_or_test == "train":
-    transformer_layers = 8
-  elif train_or_test == "test":
-    return
+def train_base(num_classes, input_shape, x_train, y_train, x_test, y_test):
+  #train base CNN
+  cnn_model = create_base_cnn(num_classes, input_shape)
+  history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
+
+  #train base vision transformer
+  #transformer_layers = 8
+  #vit_classifier = make_transformer(transformer_layers, num_classes, input_shape, x_train)
   return
 
-def define_tiny_cnn(num_classes, input_shape):
-  model = tf.keras.models.Sequential()
-  model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', input_shape=input_shape))
-  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-  model.add(tf.keras.layers.Flatten())
-  model.add(tf.keras.layers.Dense(100, activation='relu', kernel_initializer='he_uniform'))
-  model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
-  # compile model
-  opt = tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.9)
-  model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
-  return model
+#-----------------------------data handling----------------------------------
+
+def get_data(data_set):
+  if data_set == "cifar10":
+    (x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
+  elif data_set == "cifar100":
+    (x_train, y_train), (x_test, y_test) = keras.datasets.cifar100.load_data()
+  elif data_set == "fashion_mnist":
+    (x_train, y_train), (x_test, y_test) = keras.datasets.fashion_mnist.load_data()
+    x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
+    x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
+
+  #normalize
+  x_train = x_train / 255
+  x_test = x_test / 255
+
+  #one-hot encode
+  y_train = tf.keras.utils.to_categorical(y_train)
+  y_test = tf.keras.utils.to_categorical(y_test)
+
+  return (x_train, y_train), (x_test, y_test)
 
 #-----------------------------argument handling----------------------------------
 
