@@ -4,6 +4,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow_addons as tfa
 import argparse, os, sys
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 #-----------------------------networks----------------------------------
 
@@ -131,35 +132,83 @@ def make_transformer(transformer_layers, num_classes, input_shape, x_train):
 
 #-----------------------------training----------------------------------
 #each train function below trains CNN and vision transformer of defined size (tiny, small, base)
+
 def train_tiny(num_classes, input_shape, x_train, y_train, x_test, y_test):
   #train tiny CNN
   cnn_model = create_tiny_cnn(num_classes, input_shape)
   history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
+  #save tiny CNN model
+  cnn_model.save("./models/tiny_CNN.h5")
+  print("tiny_CNN model saved.")
 
   #train tiny vision transformer
   #transformer_layers = 4
   #vit_classifier = make_transformer(transformer_layers, num_classes, input_shape, x_train)
-  return
 
 def train_small(num_classes, input_shape, x_train, y_train, x_test, y_test):
   #train small CNN
   cnn_model = create_small_cnn(num_classes, input_shape)
   history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
+  #save small CNN model
+  cnn_model.save("./models/small_CNN.h5")
+  print("small_CNN model saved.")
 
   #train small vision transformer
   #transformer_layers = 6
   #vit_classifier = make_transformer(transformer_layers, num_classes, input_shape, x_train)
-  return
 
 def train_base(num_classes, input_shape, x_train, y_train, x_test, y_test):
   #train base CNN
   cnn_model = create_base_cnn(num_classes, input_shape)
   history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
+  #save base CNN model
+  cnn_model.save("./models/base_CNN.h5")
+  print("base_CNN model saved.")
 
   #train base vision transformer
   #transformer_layers = 8
   #vit_classifier = make_transformer(transformer_layers, num_classes, input_shape, x_train)
-  return
+
+#-----------------------------testing----------------------------------
+
+def test_tiny(x_test, y_test):
+  print("Loading model")
+  model = tf.keras.models.load_model("./models/tiny_CNN.h5")
+  print("Making predictions on test data")
+  predict_metrics(model, x_test, y_test)
+
+def test_small(x_test, y_test):
+  print("Loading model")
+  model = tf.keras.models.load_model("./models/small_CNN.h5")
+  print("Making predictions on test data")
+  predict_metrics(model, x_test, y_test)
+
+def test_base(x_test, y_test):
+  print("Loading model")
+  model = tf.keras.models.load_model("./models/base_CNN.h5")
+  print("Making predictions on test data")
+  predict_metrics(model, x_test, y_test)
+
+def predict_metrics(model, x_test, y_test):
+  #predict and format output to use with sklearn
+  predict = model.predict(x_test)
+  predict = np.argmax(predict, axis=1)
+  y_test = np.argmax(y_test, axis=1)
+  #macro precision, recall, and F1 score
+  precision_macro = precision_score(y_test, predict, average='macro')
+  recall_macro = recall_score(y_test, predict, average='macro')
+  f1_macro = f1_score(y_test, predict, average='macro')
+  #micro precision, recall, and F1 score
+  precision_micro = precision_score(y_test, predict, average='micro')
+  recall_micro = recall_score(y_test, predict, average='micro')
+  f1_micro = f1_score(y_test, predict, average='micro')
+
+  print("Macro precision: ", precision_macro)
+  print("Micro precision: ", precision_micro)
+  print("Macro recall: ", recall_macro)
+  print("Micro recall: ", recall_micro)
+  print("Macro F1 score: ", f1_macro)
+  print("Micro F1 score: ", f1_micro)
 
 #-----------------------------data handling----------------------------------
 

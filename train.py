@@ -1,11 +1,13 @@
 from helpers import *
 
 def main():
+  #get user command line arguments
   args = get_args()
-
   data_set = args.data_set
   network_size = args.network_size
 
+  #get data from the data set the user chose (cifar10, cifar100, fashion_mnist)
+  print("Loading Training Data")
   (x_train, y_train), (x_test, y_test) = get_data(data_set)
   input_shape = x_train[0].shape
 
@@ -14,6 +16,7 @@ def main():
   elif data_set == "cifar100":
     num_classes = 100
 
+  #train CNN and Vision Transformer based on network size user picked
   if network_size == "tiny":
     train_tiny(num_classes, input_shape, x_train, y_train, x_test, y_test)
   elif network_size == "small":
