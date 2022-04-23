@@ -8,7 +8,7 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 
 #-----------------------------networks----------------------------------
 
-def create_tiny_cnn(num_classes, input_shape):
+def define_tiny_cnn(num_classes, input_shape):
   #define model
   model = tf.keras.models.Sequential()
   model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
@@ -22,7 +22,7 @@ def create_tiny_cnn(num_classes, input_shape):
   model.summary()
   return model
 
-def create_small_cnn(num_classes, input_shape):
+def define_small_cnn(num_classes, input_shape):
   #define model
   model = tf.keras.models.Sequential()
   model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
@@ -38,7 +38,7 @@ def create_small_cnn(num_classes, input_shape):
   model.summary()
   return model
 
-def create_base_cnn(num_classes, input_shape):
+def define_base_cnn(num_classes, input_shape):
   #define model
   model = tf.keras.models.Sequential()
   model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
@@ -56,8 +56,23 @@ def create_base_cnn(num_classes, input_shape):
   model.summary()
   return model
 
-#TODO: make_tranformer uses variables not present in scope of sampleViT.py example
-def make_transformer(transformer_layers, num_classes, input_shape, x_train):
+def define_tiny_transformer(transformer_layers, x_train):
+  #hyper parameters
+  learning_rate = 0.001
+  weight_decay = 0.0001
+  batch_size = 256
+  num_epochs = 100
+  image_size = 72  # We'll resize input images to this size
+  patch_size = 6  # Size of the patches to be extract from the input images
+  num_patches = (image_size // patch_size) ** 2
+  projection_dim = 64
+  num_heads = 4
+  transformer_units = [
+    projection_dim * 2,
+    projection_dim,
+  ]  # Size of the transformer layers
+  mlp_head_units = [2048, 1024]  # Size of the dense layers of the final classifier
+
   #do some data preprocessing
   data_augmentation = keras.Sequential(
   [
@@ -130,64 +145,45 @@ def make_transformer(transformer_layers, num_classes, input_shape, x_train):
   model.summary()
   return model
 
+def create_models(data_set, network_size, input_shape):
+  if data_set == "cifar10" or data_set == "fashion_mnist":
+    num_classes = 10
+  elif data_set == "cifar100":
+    num_classes = 100
+    
+  if network_size == "tiny":
+    cnn_model = define_tiny_cnn(num_classes, input_shape)
+    #vit_model = define_tiny_transformer(4)
+  elif network_size == "small":
+    cnn_model = define_small_cnn(num_classes, input_shape)
+    #vit_model = define_tiny_transformer(6)
+  elif network_size == "base":
+    cnn_model = define_base_cnn(num_classes, input_shape)
+    #vit_model = define_tiny_transformer(8)
+  
+  #return cnn_model, vit_model
+  return cnn_model
+
 #-----------------------------training----------------------------------
-#each train function below trains CNN and vision transformer of defined size (tiny, small, base)
 
-def train_tiny(num_classes, input_shape, x_train, y_train, x_test, y_test):
-  #train tiny CNN
-  cnn_model = create_tiny_cnn(num_classes, input_shape)
-  history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
-  #save tiny CNN model
-  cnn_model.save("./models/tiny_CNN.h5")
-  print("tiny_CNN model saved.")
+#train CNN and vision transformer of defined size (tiny, small, base)
+def train_models(cnn_model, x_train, y_train, x_test, y_test):
+  #train CNN and Vision Transformer
+  cnn_history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
+  #vit_history = vit_model.fit(x=x_train, y=y_train, batch_size=256, epochs=100, validation_split=0.1, callbacks=[checkpoint_callback])
 
-  #train tiny vision transformer
-  #transformer_layers = 4
-  #vit_classifier = make_transformer(transformer_layers, num_classes, input_shape, x_train)
 
-def train_small(num_classes, input_shape, x_train, y_train, x_test, y_test):
-  #train small CNN
-  cnn_model = create_small_cnn(num_classes, input_shape)
-  history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
-  #save small CNN model
-  cnn_model.save("./models/small_CNN.h5")
-  print("small_CNN model saved.")
-
-  #train small vision transformer
-  #transformer_layers = 6
-  #vit_classifier = make_transformer(transformer_layers, num_classes, input_shape, x_train)
-
-def train_base(num_classes, input_shape, x_train, y_train, x_test, y_test):
-  #train base CNN
-  cnn_model = create_base_cnn(num_classes, input_shape)
-  history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
-  #save base CNN model
-  cnn_model.save("./models/base_CNN.h5")
-  print("base_CNN model saved.")
-
-  #train base vision transformer
-  #transformer_layers = 8
-  #vit_classifier = make_transformer(transformer_layers, num_classes, input_shape, x_train)
+  #return cnn_history, vit_history
+  return cnn_history
 
 #-----------------------------testing----------------------------------
 
-def test_tiny(x_test, y_test):
-  print("Loading model")
-  model = tf.keras.models.load_model("./models/tiny_CNN.h5")
-  print("Making predictions on test data")
-  predict_metrics(model, x_test, y_test)
-
-def test_small(x_test, y_test):
-  print("Loading model")
-  model = tf.keras.models.load_model("./models/small_CNN.h5")
-  print("Making predictions on test data")
-  predict_metrics(model, x_test, y_test)
-
-def test_base(x_test, y_test):
-  print("Loading model")
-  model = tf.keras.models.load_model("./models/base_CNN.h5")
-  print("Making predictions on test data")
-  predict_metrics(model, x_test, y_test)
+def test_models(cnn_model, network_size, x_test, y_test):
+  print("Making predictions on test data...")
+  print("CNN metrics: ")
+  predict_metrics(cnn_model, x_test, y_test)
+  print("Vision Transformer metrics: ")
+  #predict_metrics(vit_model, x_test, y_test)
 
 def predict_metrics(model, x_test, y_test):
   #predict and format output to use with sklearn
@@ -213,6 +209,8 @@ def predict_metrics(model, x_test, y_test):
 #-----------------------------data handling----------------------------------
 
 def get_data(data_set):
+  print("Loading data...")
+
   if data_set == "cifar10":
     (x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
   elif data_set == "cifar100":
@@ -232,12 +230,26 @@ def get_data(data_set):
 
   return (x_train, y_train), (x_test, y_test)
 
+def save_models(cnn_model, data_set, network_size):
+  cnn_model.save(f"./models/{data_set}_{network_size}_CNN.h5")
+  #vit_model.save(f"./models/{data_set}_{network_size}_vision_transformer.h5")
+  print("Models saved.")
+
+def load_models(data_set, network_size):
+  print("Loading models...")
+  cnn_model = tf.keras.models.load_model(f"./models/{data_set}_{network_size}_CNN.h5")
+  #vit_model = tf.keras.models.load_model(f"./models/{data_set}_{network_size}_vision_transformer.h5")
+
+  #return cnn_model, vit_model
+  return cnn_model
+
 #-----------------------------argument handling----------------------------------
 
 def check_data_set(user_input):
   error_msg = ("%s is an invalid argument (must be either \"cifar10\","
                 "\"cifar100\"), or \"fashion_mnist\"" % user_input)
   valid_input = ['cifar10', 'cifar100', 'fashion_mnist']
+
   for val in valid_input:
     if user_input == val:
       return user_input
@@ -247,6 +259,7 @@ def check_network_size(user_input):
   error_msg = ("%s is an invalid argument (must be either \"tiny\","
                 "\"small\"), or \"base\"" % user_input)
   valid_input = ['tiny', 'small', 'base']
+
   for val in valid_input:
     if user_input == val:
       return user_input
