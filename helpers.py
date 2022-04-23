@@ -56,7 +56,7 @@ def define_base_cnn(num_classes, input_shape):
   model.summary()
   return model
 
-def define_tiny_transformer(transformer_layers, x_train):
+def define_tiny_transformer(transformer_layers, x_train, num_classes, input_shape):
   #hyper parameters
   learning_rate = 0.001
   weight_decay = 0.0001
@@ -71,7 +71,7 @@ def define_tiny_transformer(transformer_layers, x_train):
     projection_dim * 2,
     projection_dim,
   ]  # Size of the transformer layers
-  mlp_head_units = [2048, 1024]  # Size of the dense layers of the final classifier
+  mlp_head_units = [1024, 512]  # Size of the dense layers of the final classifier
 
   #do some data preprocessing
   data_augmentation = keras.Sequential(
@@ -88,7 +88,7 @@ def define_tiny_transformer(transformer_layers, x_train):
   data_augmentation.layers[0].adapt(x_train)
   
   #set input layer/shape
-  inputs = layers.Input(shape=shape)
+  inputs = layers.Input(shape=input_shape)
 
   # Augment data
   augmented = data_augmentation(inputs)
@@ -145,7 +145,7 @@ def define_tiny_transformer(transformer_layers, x_train):
   model.summary()
   return model
 
-def create_models(data_set, network_size, input_shape):
+def create_models(data_set, network_size, input_shape, x_train):
   if data_set == "cifar10" or data_set == "fashion_mnist":
     num_classes = 10
   elif data_set == "cifar100":
@@ -153,7 +153,7 @@ def create_models(data_set, network_size, input_shape):
     
   if network_size == "tiny":
     cnn_model = define_tiny_cnn(num_classes, input_shape)
-    #vit_model = define_tiny_transformer(4)
+    vit_model = define_tiny_transformer(4, x_train, num_classes, input_shape)
   elif network_size == "small":
     cnn_model = define_small_cnn(num_classes, input_shape)
     #vit_model = define_tiny_transformer(6)
@@ -164,13 +164,59 @@ def create_models(data_set, network_size, input_shape):
   #return cnn_model, vit_model
   return cnn_model
 
+#-----------------------------transformer classes and methods----------------------------------
+#multilayer perceptron
+def mlp(x, hidden_units, dropout_rate):
+    for units in hidden_units:
+        x = layers.Dense(units, activation=tf.nn.gelu)(x)
+        x = layers.Dropout(dropout_rate)(x)
+    return x
+
+class Patches(layers.Layer):
+    def __init__(self, patch_size):
+        super(Patches, self).__init__()
+        self.patch_size = patch_size
+
+    def get_config(self):
+        return {"patch_size": self.patch_size}
+
+    def call(self, images):
+        batch_size = tf.shape(images)[0]
+        patches = tf.image.extract_patches(
+            images=images,
+            sizes=[1, self.patch_size, self.patch_size, 1],
+            strides=[1, self.patch_size, self.patch_size, 1],
+            rates=[1, 1, 1, 1],
+            padding="VALID",
+        )
+        patch_dims = patches.shape[-1]
+        patches = tf.reshape(patches, [batch_size, -1, patch_dims])
+        return patches
+
+class PatchEncoder(layers.Layer):
+    def __init__(self, num_patches, projection_dim):
+        super(PatchEncoder, self).__init__()
+        self.num_patches = num_patches
+        self.projection_dim=projection_dim
+        self.projection = layers.Dense(units=projection_dim)
+        self.position_embedding = layers.Embedding(
+            input_dim=num_patches, output_dim=projection_dim
+        )
+    def get_config(self):
+        return {"num_patches": self.num_patches, "projection_dim": self.projection_dim}
+
+    def call(self, patch):
+        positions = tf.range(start=0, limit=self.num_patches, delta=1)
+        encoded = self.projection(patch) + self.position_embedding(positions)
+        return encoded
+
 #-----------------------------training----------------------------------
 
 #train CNN and vision transformer of defined size (tiny, small, base)
 def train_models(cnn_model, x_train, y_train, x_test, y_test):
   #train CNN and Vision Transformer
   cnn_history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
-  #vit_history = vit_model.fit(x=x_train, y=y_train, batch_size=256, epochs=100, validation_split=0.1, callbacks=[checkpoint_callback])
+  vit_history = vit_model.fit(x=x_train, y=y_train, batch_size=256, epochs=100, validation_split=0.1, callbacks=[checkpoint_callback])
 
 
   #return cnn_history, vit_history
