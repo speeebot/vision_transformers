@@ -56,14 +56,13 @@ def define_base_cnn(num_classes, input_shape):
   model.summary()
   return model
 
-def define_tiny_transformer(transformer_layers, x_train, num_classes, input_shape):
-  #hyper parameters
+def define_transformer(transformer_layers, patch_size, x_train, num_classes, input_shape):
+  #define hyperparameters
   learning_rate = 0.001
   weight_decay = 0.0001
-  batch_size = 256
-  num_epochs = 100
+  num_epochs = 10
   image_size = 72  # We'll resize input images to this size
-  patch_size = 6  # Size of the patches to be extract from the input images
+  patch_size = patch_size  # Size of the patches to be extracted from the input images
   num_patches = (image_size // patch_size) ** 2
   projection_dim = 64
   num_heads = 4
@@ -136,10 +135,10 @@ def define_tiny_transformer(transformer_layers, x_train, num_classes, input_shap
 
   model.compile(
     optimizer=optimizer,
-    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    loss=keras.losses.CategoricalCrossentropy(from_logits=True),
     metrics=[
-      keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
-      keras.metrics.SparseTopKCategoricalAccuracy(5, name="top-5-accuracy"),
+      keras.metrics.CategoricalAccuracy(name="accuracy"),
+      keras.metrics.TopKCategoricalAccuracy(5, name="top-5-accuracy"),
     ],
   )
   model.summary()
@@ -153,16 +152,15 @@ def create_models(data_set, network_size, input_shape, x_train):
     
   if network_size == "tiny":
     cnn_model = define_tiny_cnn(num_classes, input_shape)
-    vit_model = define_tiny_transformer(4, x_train, num_classes, input_shape)
+    vit_model = define_transformer(4, 6, x_train, num_classes, input_shape)
   elif network_size == "small":
     cnn_model = define_small_cnn(num_classes, input_shape)
-    #vit_model = define_tiny_transformer(6)
+    vit_model = define_transformer(6, 12, x_train, num_classes, input_shape)
   elif network_size == "base":
     cnn_model = define_base_cnn(num_classes, input_shape)
-    #vit_model = define_tiny_transformer(8)
+    vit_model = define_transformer(8, 24, x_train, num_classes, input_shape)
   
-  #return cnn_model, vit_model
-  return cnn_model
+  return cnn_model, vit_model
 
 #-----------------------------transformer classes and methods----------------------------------
 #multilayer perceptron
@@ -213,23 +211,22 @@ class PatchEncoder(layers.Layer):
 #-----------------------------training----------------------------------
 
 #train CNN and vision transformer of defined size (tiny, small, base)
-def train_models(cnn_model, x_train, y_train, x_test, y_test):
+def train_models(cnn_model, vit_model, x_train, y_train, x_test, y_test):
   #train CNN and Vision Transformer
-  cnn_history = cnn_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
-  vit_history = vit_model.fit(x=x_train, y=y_train, batch_size=256, epochs=100, validation_split=0.1, callbacks=[checkpoint_callback])
+  cnn_history = cnn_model.fit(x_train, y_train, epochs=15, batch_size=64, validation_data=(x_test, y_test))
+  vit_history = vit_model.fit(x_train, y_train, epochs=15, batch_size=64, validation_data=(x_test, y_test))
 
-
-  #return cnn_history, vit_history
-  return cnn_history
+  return cnn_history, vit_history
 
 #-----------------------------testing----------------------------------
 
-def test_models(cnn_model, network_size, x_test, y_test):
+def test_models(cnn_model, vit_model, x_test, y_test):
   print("Making predictions on test data...")
   print("CNN metrics: ")
   predict_metrics(cnn_model, x_test, y_test)
+
   print("Vision Transformer metrics: ")
-  #predict_metrics(vit_model, x_test, y_test)
+  predict_metrics(vit_model, x_test, y_test)
 
 def predict_metrics(model, x_test, y_test):
   #predict and format output to use with sklearn
@@ -276,18 +273,18 @@ def get_data(data_set):
 
   return (x_train, y_train), (x_test, y_test)
 
-def save_models(cnn_model, data_set, network_size):
+def save_models(cnn_model, vit_model, data_set, network_size):
   cnn_model.save(f"./models/{data_set}_{network_size}_CNN.h5")
-  #vit_model.save(f"./models/{data_set}_{network_size}_vision_transformer.h5")
+  vit_model.save(f"./models/{data_set}_{network_size}_vision_transformer.h5")
   print("Models saved.")
 
 def load_models(data_set, network_size):
   print("Loading models...")
   cnn_model = tf.keras.models.load_model(f"./models/{data_set}_{network_size}_CNN.h5")
-  #vit_model = tf.keras.models.load_model(f"./models/{data_set}_{network_size}_vision_transformer.h5")
+  vit_model = tf.keras.models.load_model(f"./models/{data_set}_{network_size}_vision_transformer.h5", 
+                                          custom_objects={'Patches': Patches, 'PatchEncoder': PatchEncoder})
 
-  #return cnn_model, vit_model
-  return cnn_model
+  return cnn_model, vit_model
 
 #-----------------------------argument handling----------------------------------
 
