@@ -5,6 +5,9 @@ from tensorflow.keras import layers
 import tensorflow_addons as tfa
 import argparse, os, sys
 from sklearn.metrics import precision_score, recall_score, f1_score
+import matplotlib
+import matplotlib.pyplot as plt
+plt.switch_backend('svg')
 
 #-----------------------------networks----------------------------------
 
@@ -13,13 +16,15 @@ def define_tiny_cnn(num_classes, input_shape):
   model = tf.keras.models.Sequential()
   model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
   model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Dropout(0.2))
   model.add(tf.keras.layers.Flatten())
   model.add(tf.keras.layers.Dense(512, activation='relu'))
   model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
+  
   #compile model
   opt = tf.keras.optimizers.Adam(learning_rate=0.001)
-  model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
-  model.summary()
+  model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
   return model
 
 def define_small_cnn(num_classes, input_shape):
@@ -27,15 +32,18 @@ def define_small_cnn(num_classes, input_shape):
   model = tf.keras.models.Sequential()
   model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
   model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Dropout(0.2))
   model.add(tf.keras.layers.Conv2D(128, (3, 3), activation='relu'))
   model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Dropout(0.2))
   model.add(tf.keras.layers.Flatten())
   model.add(tf.keras.layers.Dense(512, activation='relu'))
   model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
+
   #compile model
   opt = tf.keras.optimizers.Adam(learning_rate=0.001)
-  model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
-  model.summary()
+  model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+  
   return model
 
 def define_base_cnn(num_classes, input_shape):
@@ -43,24 +51,27 @@ def define_base_cnn(num_classes, input_shape):
   model = tf.keras.models.Sequential()
   model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
   model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Dropout(0.2))
   model.add(tf.keras.layers.Conv2D(128, (3, 3), activation='relu'))
   model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Dropout(0.2))
   model.add(tf.keras.layers.Conv2D(256, (3, 3), activation='relu'))
   model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Dropout(0.2))
   model.add(tf.keras.layers.Flatten())
   model.add(tf.keras.layers.Dense(512, activation='relu'))
   model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
+
   #compile model
   opt = tf.keras.optimizers.Adam(learning_rate=0.001)
-  model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
-  model.summary()
+  model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
   return model
 
 def define_transformer(transformer_layers, patch_size, x_train, num_classes, input_shape):
   #define hyperparameters
-  learning_rate = 0.001
   weight_decay = 0.0001
-  num_epochs = 10
+  learning_rate = 0.001
   image_size = 72  # We'll resize input images to this size
   patch_size = patch_size  # Size of the patches to be extracted from the input images
   num_patches = (image_size // patch_size) ** 2
@@ -135,13 +146,13 @@ def define_transformer(transformer_layers, patch_size, x_train, num_classes, inp
 
   model.compile(
     optimizer=optimizer,
-    loss=keras.losses.CategoricalCrossentropy(from_logits=True),
+    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=[
-      keras.metrics.CategoricalAccuracy(name="accuracy"),
-      keras.metrics.TopKCategoricalAccuracy(5, name="top-5-accuracy"),
+      keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
+      keras.metrics.SparseTopKCategoricalAccuracy(5, name="top-5-accuracy"),
     ],
   )
-  model.summary()
+
   return model
 
 def create_models(data_set, network_size, input_shape, x_train):
@@ -211,10 +222,12 @@ class PatchEncoder(layers.Layer):
 #-----------------------------training----------------------------------
 
 #train CNN and vision transformer of defined size (tiny, small, base)
-def train_models(cnn_model, vit_model, x_train, y_train, x_test, y_test):
+def train_models(cnn_model, vit_model, x_train, y_train):
   #train CNN and Vision Transformer
-  cnn_history = cnn_model.fit(x_train, y_train, epochs=15, batch_size=64, validation_data=(x_test, y_test))
-  vit_history = vit_model.fit(x_train, y_train, epochs=15, batch_size=64, validation_data=(x_test, y_test))
+  cnn_model.summary()
+  cnn_history = cnn_model.fit(x_train, y_train, epochs=15, batch_size=64, validation_split=0.2)
+  vit_model.summary()
+  vit_history = vit_model.fit(x_train, y_train, epochs=25, batch_size=64, validation_split=0.2)
 
   return cnn_history, vit_history
 
@@ -232,7 +245,7 @@ def predict_metrics(model, x_test, y_test):
   #predict and format output to use with sklearn
   predict = model.predict(x_test)
   predict = np.argmax(predict, axis=1)
-  y_test = np.argmax(y_test, axis=1)
+  #y_test = np.argmax(y_test, axis=1)
   #macro precision, recall, and F1 score
   precision_macro = precision_score(y_test, predict, average='macro')
   recall_macro = recall_score(y_test, predict, average='macro')
@@ -248,6 +261,25 @@ def predict_metrics(model, x_test, y_test):
   print("Micro recall: ", recall_micro)
   print("Macro F1 score: ", f1_macro)
   print("Micro F1 score: ", f1_micro)
+
+def plot_results(history, data_set, network_size, model):
+  plt.plot(history.history['accuracy'])
+  plt.plot(history.history['val_accuracy'])
+  plt.title(f'Model accuracy on {data_set} dataset using {network_size} sized {model} network')
+  plt.xlabel('Epoch')
+  plt.ylabel('Accuracy')
+  plt.legend(['Train', 'Test'], loc='upper left')
+  plt.savefig(f'./figures/accuracy_{model}_{data_set}_{network_size}')
+  plt.clf()
+  plt.plot(history.history['loss'])
+  plt.plot(history.history['val_loss'])
+  plt.title(f'Model loss on {data_set} dataset using {network_size} sized {model} network')
+  plt.xlabel('Epoch')
+  plt.ylabel('Loss')
+  plt.legend(['Train', 'Test'], loc='upper left')
+  plt.savefig(f'./figures/loss_{model}_{data_set}_{network_size}') 
+  plt.clf()
+  print("Plots saved")
 
 #-----------------------------data handling----------------------------------
 
@@ -268,21 +300,38 @@ def get_data(data_set):
   x_test = x_test / 255
 
   #one-hot encode
-  y_train = tf.keras.utils.to_categorical(y_train)
-  y_test = tf.keras.utils.to_categorical(y_test)
+  #y_train = tf.keras.utils.to_categorical(y_train)
+  #y_test = tf.keras.utils.to_categorical(y_test)
 
   return (x_train, y_train), (x_test, y_test)
 
 def save_models(cnn_model, vit_model, data_set, network_size):
-  cnn_model.save(f"./models/{data_set}_{network_size}_CNN.h5")
-  vit_model.save(f"./models/{data_set}_{network_size}_vision_transformer.h5")
+  cnn_model.save_weights(f"./models/{data_set}_{network_size}_CNN.h5")
+  vit_model.save_weights(f"./models/{data_set}_{network_size}_vision_transformer.h5")
   print("Models saved.")
 
-def load_models(data_set, network_size):
+def load_models(cnn_model, vit_model, data_set, network_size):
   print("Loading models...")
-  cnn_model = tf.keras.models.load_model(f"./models/{data_set}_{network_size}_CNN.h5")
-  vit_model = tf.keras.models.load_model(f"./models/{data_set}_{network_size}_vision_transformer.h5", 
-                                          custom_objects={'Patches': Patches, 'PatchEncoder': PatchEncoder})
+  #load model weights
+  cnn_model.load_weights(f"./models/{data_set}_{network_size}_CNN.h5")
+  vit_model.load_weights(f"./models/{data_set}_{network_size}_vision_transformer.h5")
+  #initialize optimizers
+  cnn_optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+  vit_optimizer = tfa.optimizers.AdamW(learning_rate=0.001, weight_decay=0.0001)
+  #compile CNN model
+  cnn_model.compile(
+    optimizer=cnn_optimizer, 
+    loss='sparse_categorical_crossentropy', 
+    metrics=['accuracy'])
+  #compile ViT model
+  vit_model.compile(
+    optimizer=vit_optimizer,
+    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    metrics=[
+      keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
+      keras.metrics.SparseTopKCategoricalAccuracy(5, name="top-5-accuracy"),
+    ],
+  )
 
   return cnn_model, vit_model
 
