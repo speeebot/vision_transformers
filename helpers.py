@@ -14,15 +14,20 @@ plt.switch_backend('svg')
 def define_tiny_cnn(num_classes, input_shape):
   #define model
   model = tf.keras.models.Sequential()
-  model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
-  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-  model.add(tf.keras.layers.Dropout(0.2))
+  model.add(tf.keras.layers.Conv2D(filters=64, kernel_size = (3,3), activation="relu", input_shape=input_shape, padding='same'))
+  model.add(tf.keras.layers.BatchNormalization())
+  model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+
+
   model.add(tf.keras.layers.Flatten())
-  model.add(tf.keras.layers.Dense(512, activation='relu'))
-  model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
-  
+  model.add(tf.keras.layers.Dense(512,activation="relu"))
+  model.add(tf.keras.layers.Dropout(0.2))
+  model.add(tf.keras.layers.BatchNormalization())
+    
+  model.add(tf.keras.layers.Dense(num_classes, activation="softmax"))
+
   #compile model
-  opt = tf.keras.optimizers.Adam(learning_rate=0.001)
+  opt = tf.keras.optimizers.RMSprop(learning_rate=0.0001)
   model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
   return model
@@ -30,18 +35,27 @@ def define_tiny_cnn(num_classes, input_shape):
 def define_small_cnn(num_classes, input_shape):
   #define model
   model = tf.keras.models.Sequential()
-  model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
-  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-  model.add(tf.keras.layers.Dropout(0.2))
-  model.add(tf.keras.layers.Conv2D(128, (3, 3), activation='relu'))
-  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-  model.add(tf.keras.layers.Dropout(0.2))
+  model.add(tf.keras.layers.Conv2D(filters=256, kernel_size = (3,3), activation="relu", input_shape=input_shape, padding='same'))
+  model.add(tf.keras.layers.BatchNormalization())
+  model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+
+  model.add(tf.keras.layers.Conv2D(filters=512, kernel_size = (3,3), activation="relu", padding='same'))
+  model.add(tf.keras.layers.BatchNormalization())
+  model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+    
+  model.add(tf.keras.layers.Conv2D(filters=512, kernel_size = (3,3), activation="relu", padding='same'))
+  model.add(tf.keras.layers.BatchNormalization())
+  model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+
   model.add(tf.keras.layers.Flatten())
-  model.add(tf.keras.layers.Dense(512, activation='relu'))
-  model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
+  model.add(tf.keras.layers.Dense(1024,activation="relu"))
+  model.add(tf.keras.layers.Dropout(0.2))
+  model.add(tf.keras.layers.BatchNormalization())
+    
+  model.add(tf.keras.layers.Dense(num_classes, activation="softmax"))
 
   #compile model
-  opt = tf.keras.optimizers.Adam(learning_rate=0.001)
+  opt = tf.keras.optimizers.RMSprop(learning_rate=0.0001)
   model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
   
   return model
@@ -49,31 +63,46 @@ def define_small_cnn(num_classes, input_shape):
 def define_base_cnn(num_classes, input_shape):
   #define model
   model = tf.keras.models.Sequential()
-  model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=input_shape))
-  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+  model.add(tf.keras.layers.Conv2D(filters=256, kernel_size = (3,3), activation="relu", input_shape=input_shape, padding='same'))
+  model.add(tf.keras.layers.BatchNormalization())
+  model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+  model.add(tf.keras.layers.Conv2D(filters=256, kernel_size = (3,3), activation="relu", padding='same'))
+  model.add(tf.keras.layers.BatchNormalization())
   model.add(tf.keras.layers.Dropout(0.2))
-  model.add(tf.keras.layers.Conv2D(128, (3, 3), activation='relu'))
-  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+
+  model.add(tf.keras.layers.Conv2D(filters=512, kernel_size = (3,3), activation="relu", padding='same'))
+  model.add(tf.keras.layers.BatchNormalization())
+  model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+  model.add(tf.keras.layers.Conv2D(filters=512, kernel_size = (3,3), activation="relu", padding='same'))
+  model.add(tf.keras.layers.BatchNormalization())
   model.add(tf.keras.layers.Dropout(0.2))
-  model.add(tf.keras.layers.Conv2D(256, (3, 3), activation='relu'))
-  model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+    
+  model.add(tf.keras.layers.Conv2D(filters=512, kernel_size = (3,3), activation="relu", padding='same'))
+  model.add(tf.keras.layers.BatchNormalization())
+  model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+  model.add(tf.keras.layers.Conv2D(filters=512, kernel_size = (3,3), activation="relu", padding='same'))
+  model.add(tf.keras.layers.BatchNormalization())
   model.add(tf.keras.layers.Dropout(0.2))
+
   model.add(tf.keras.layers.Flatten())
-  model.add(tf.keras.layers.Dense(512, activation='relu'))
-  model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
+  model.add(tf.keras.layers.Dense(1024,activation="relu"))
+  model.add(tf.keras.layers.Dropout(0.2))
+  model.add(tf.keras.layers.BatchNormalization())
+    
+  model.add(tf.keras.layers.Dense(num_classes, activation="softmax"))
 
   #compile model
-  opt = tf.keras.optimizers.Adam(learning_rate=0.001)
+  opt = tf.keras.optimizers.RMSprop(learning_rate=0.0001)
   model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
   return model
 
-def define_transformer(transformer_layers, patch_size, x_train, num_classes, input_shape):
+def define_transformer(transformer_layers, mlp_head_units, x_train, num_classes, input_shape):
   #define hyperparameters
   weight_decay = 0.0001
   learning_rate = 0.001
   image_size = 72  # We'll resize input images to this size
-  patch_size = patch_size  # Size of the patches to be extracted from the input images
+  patch_size = 6  # Size of the patches to be extracted from the input images
   num_patches = (image_size // patch_size) ** 2
   projection_dim = 64
   num_heads = 4
@@ -81,22 +110,22 @@ def define_transformer(transformer_layers, patch_size, x_train, num_classes, inp
     projection_dim * 2,
     projection_dim,
   ]  # Size of the transformer layers
-  mlp_head_units = [1024, 512]  # Size of the dense layers of the final classifier
+  mlp_head_units = mlp_head_units  # Size of the dense layers of the final classifier
 
   #do some data preprocessing
   data_augmentation = keras.Sequential(
   [
-    tf.keras.layers.experimental.preprocessing.Normalization(),
-    tf.keras.layers.experimental.preprocessing.Resizing(image_size, image_size),
-    tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal"),
-    tf.keras.layers.experimental.preprocessing.RandomRotation(factor=0.02),
-    tf.keras.layers.experimental.preprocessing.RandomZoom(height_factor=0.2, width_factor=0.2),
+      tf.keras.layers.experimental.preprocessing.Normalization(),
+      tf.keras.layers.experimental.preprocessing.Resizing(image_size, image_size),
+      tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal"),
+      tf.keras.layers.experimental.preprocessing.RandomRotation(factor=0.02),
+      tf.keras.layers.experimental.preprocessing.RandomZoom(height_factor=0.2, width_factor=0.2),
   ],
   name="data_augmentation",
   )
   # Compute the mean and the variance of the training data for normalization.
   data_augmentation.layers[0].adapt(x_train)
-  
+
   #set input layer/shape
   inputs = layers.Input(shape=input_shape)
 
@@ -111,20 +140,20 @@ def define_transformer(transformer_layers, patch_size, x_train, num_classes, inp
 
   # Create multiple layers of the Transformer block.
   for _ in range(transformer_layers):
-    # Layer normalization 1.
-    x1 = layers.LayerNormalization(epsilon=1e-6)(encoded_patches)
-    # Create a multi-head attention layer.
-    attention_output = layers.MultiHeadAttention(
-        num_heads=num_heads, key_dim=projection_dim, dropout=0.1
-    )(x1, x1)
-    # Skip connection 1.
-    x2 = layers.Add()([attention_output, encoded_patches])
-    # Layer normalization 2.
-    x3 = layers.LayerNormalization(epsilon=1e-6)(x2)
-    # MLP.
-    x3 = mlp(x3, hidden_units=transformer_units, dropout_rate=0.1)
-    # Skip connection 2.
-    encoded_patches = layers.Add()([x3, x2])
+      # Layer normalization 1.
+      x1 = layers.LayerNormalization(epsilon=1e-6)(encoded_patches)
+        # Create a multi-head attention layer.
+      attention_output = layers.MultiHeadAttention(
+          num_heads=num_heads, key_dim=projection_dim, dropout=0.1
+      )(x1, x1)
+      # Skip connection 1.
+      x2 = layers.Add()([attention_output, encoded_patches])
+      # Layer normalization 2.
+      x3 = layers.LayerNormalization(epsilon=1e-6)(x2)
+      # MLP.
+      x3 = mlp(x3, hidden_units=transformer_units, dropout_rate=0.1)
+      # Skip connection 2.
+      encoded_patches = layers.Add()([x3, x2])
 
   # Final normalization/output
   representation = layers.LayerNormalization(epsilon=1e-6)(encoded_patches)
@@ -141,16 +170,16 @@ def define_transformer(transformer_layers, patch_size, x_train, num_classes, inp
   model = keras.Model(inputs=inputs, outputs=logits)
 
   optimizer = tfa.optimizers.AdamW(
-    learning_rate=learning_rate, weight_decay=weight_decay
+      learning_rate=learning_rate, weight_decay=weight_decay
   )
 
   model.compile(
-    optimizer=optimizer,
-    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    metrics=[
-      keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
-      keras.metrics.SparseTopKCategoricalAccuracy(5, name="top-5-accuracy"),
-    ],
+      optimizer=optimizer,
+      loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+      metrics=[
+          keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
+          keras.metrics.SparseTopKCategoricalAccuracy(5, name="top-5-accuracy"),
+      ],
   )
 
   return model
@@ -163,19 +192,22 @@ def create_models(data_set, network_size, input_shape, x_train):
     
   if network_size == "tiny":
     cnn_model = define_tiny_cnn(num_classes, input_shape)
-    vit_model = define_transformer(4, 6, x_train, num_classes, input_shape)
+    vit_model = define_transformer(4, [512, 1024], x_train, num_classes, input_shape)
   elif network_size == "small":
     cnn_model = define_small_cnn(num_classes, input_shape)
-    vit_model = define_transformer(6, 12, x_train, num_classes, input_shape)
+    vit_model = define_transformer(6, [1024, 2048], x_train, num_classes, input_shape)
   elif network_size == "base":
     cnn_model = define_base_cnn(num_classes, input_shape)
-    vit_model = define_transformer(8, 24, x_train, num_classes, input_shape)
+    vit_model = define_transformer(8, [1024, 2048], x_train, num_classes, input_shape)
+    
+  cnn_model.summary()
+  vit_model.summary()
   
   return cnn_model, vit_model
 
 #-----------------------------transformer classes and methods----------------------------------
 #multilayer perceptron
-def mlp(x, hidden_units, dropout_rate):
+def mlp(x, hidden_units):
     for units in hidden_units:
         x = layers.Dense(units, activation=tf.nn.gelu)(x)
         x = layers.Dropout(dropout_rate)(x)
@@ -218,18 +250,33 @@ class PatchEncoder(layers.Layer):
         positions = tf.range(start=0, limit=self.num_patches, delta=1)
         encoded = self.projection(patch) + self.position_embedding(positions)
         return encoded
+    def __init__(self, num_patches, projection_dim):
+        super(PatchEncoder, self).__init__()
+        self.num_patches = num_patches
+        self.projection_dim=projection_dim
+        self.projection = layers.Dense(units=projection_dim)
+        self.position_embedding = layers.Embedding(
+            input_dim=num_patches, output_dim=projection_dim
+        )
+    def get_config(self):
+        return {"num_patches": self.num_patches, "projection_dim": self.projection_dim}
+
+    def call(self, patch):
+        positions = tf.range(start=0, limit=self.num_patches, delta=1)
+        encoded = self.projection(patch) + self.position_embedding(positions)
+        return encoded
 
 #-----------------------------training----------------------------------
 
-#train CNN and vision transformer of defined size (tiny, small, base)
-def train_models(cnn_model, vit_model, x_train, y_train):
-  #train CNN and Vision Transformer
-  cnn_model.summary()
-  cnn_history = cnn_model.fit(x_train, y_train, epochs=15, batch_size=64, validation_split=0.2)
-  vit_model.summary()
-  vit_history = vit_model.fit(x_train, y_train, epochs=25, batch_size=64, validation_split=0.2)
+#train CNN of defined size (tiny, small, base)
+def train_cnn(cnn_model, x_train, y_train):
+  cnn_history = cnn_model.fit(x_train, y_train, epochs=15, batch_size=256, validation_split=0.2)
+  return cnn_history
 
-  return cnn_history, vit_history
+#train vision transformer of defined size (tiny, small, base)
+def train_vit(vit_model, x_train, y_train):
+  vit_history = vit_model.fit(x_train, y_train, epochs=15, batch_size=256, validation_split=0.2)
+  return vit_history
 
 #-----------------------------testing----------------------------------
 
@@ -245,7 +292,6 @@ def predict_metrics(model, x_test, y_test):
   #predict and format output to use with sklearn
   predict = model.predict(x_test)
   predict = np.argmax(predict, axis=1)
-  #y_test = np.argmax(y_test, axis=1)
   #macro precision, recall, and F1 score
   precision_macro = precision_score(y_test, predict, average='macro')
   recall_macro = recall_score(y_test, predict, average='macro')
@@ -298,10 +344,6 @@ def get_data(data_set):
   #normalize
   x_train = x_train / 255
   x_test = x_test / 255
-
-  #one-hot encode
-  #y_train = tf.keras.utils.to_categorical(y_train)
-  #y_test = tf.keras.utils.to_categorical(y_test)
 
   return (x_train, y_train), (x_test, y_test)
 

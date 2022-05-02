@@ -13,12 +13,14 @@ def main():
   #create the CNN and vision transformer based on network size user picked
   cnn_model, vit_model = create_models(data_set, network_size, input_shape, x_train)
   #train CNN and Vision Transformer based on network size user picked
-  cnn_history, vit_history = train_models(cnn_model, vit_model, x_train, y_train)
+  cnn_history = train_cnn(cnn_model, x_train, y_train)
+  vit_history = train_vit(vit_model, x_train, y_train)
   #save the models
-  save_models(cnn_model, vit_model, data_set, network_size)
-  #save learning curves
+  save_model(cnn_model, data_set, network_size, "cnn")
+  save_model(vit_model, data_set, network_size, "vit")
+  #plot and save learning curves
   plot_results(cnn_history, data_set, network_size, "CNN")
   plot_results(vit_history, data_set, network_size, "ViT")
-
+  
 if __name__ ==  "__main__":
   main()
