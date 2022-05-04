@@ -85,7 +85,7 @@ def define_base_cnn(num_classes, input_shape):
   model.add(tf.keras.layers.Dropout(0.2))
 
   model.add(tf.keras.layers.Flatten())
-  model.add(tf.keras.layers.Dense(1024,activation="relu"))
+  model.add(tf.keras.layers.Dense(2048,activation="relu"))
   model.add(tf.keras.layers.Dropout(0.2))
   model.add(tf.keras.layers.BatchNormalization())
     
@@ -198,7 +198,7 @@ def create_models(data_set, network_size, input_shape, x_train):
     vit_model = define_transformer(6, [1024, 2048], x_train, num_classes, input_shape)
   elif network_size == "base":
     cnn_model = define_base_cnn(num_classes, input_shape)
-    vit_model = define_transformer(8, [1024, 2048], x_train, num_classes, input_shape)
+    vit_model = define_transformer(8, [2048, 2048], x_train, num_classes, input_shape)
     
   cnn_model.summary()
   vit_model.summary()
@@ -207,7 +207,7 @@ def create_models(data_set, network_size, input_shape, x_train):
 
 #-----------------------------transformer classes and methods----------------------------------
 #multilayer perceptron
-def mlp(x, hidden_units):
+def mlp(x, hidden_units, dropout_rate):
     for units in hidden_units:
         x = layers.Dense(units, activation=tf.nn.gelu)(x)
         x = layers.Dropout(dropout_rate)(x)
